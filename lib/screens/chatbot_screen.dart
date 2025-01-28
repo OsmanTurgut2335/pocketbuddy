@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ChatbotScreen extends StatefulWidget {
   @override
@@ -7,25 +9,65 @@ class ChatbotScreen extends StatefulWidget {
 
 class _ChatbotScreenState extends State<ChatbotScreen> {
   TextEditingController _controller = TextEditingController();
-  List<Map<String, String>> _messages = [];  // Kullanıcı ve bot mesajlarını saklayacak
+  List<Map<String, String>> _messages = [];
 
-  // Kullanıcıdan alınan mesajı işleyip yanıt ekleyelim
-  void _sendMessage() {
+  // FastAPI server URL
+  final String apiUrl = "http://10.0.2.2:8000/ask/";
+
+  // Send a request to the FastAPI server
+  Future<String> _getBotResponse(String question) async {
+    // Example context; replace it with dynamic content if needed
+    String context = "A broker is an individual or firm that acts as an intermediary between an investor and a"
+        " securities exchange.Bad stock may refer to securities that are underperforming or losing value in the market."
+        " Brokers may suggest selling such stocks, holding them for potential recovery, or reallocating investments.";
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'question': question,
+          'context': context,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        print("Server Response: $responseData");
+        return responseData['answer'] ?? "Cevap alınamadı.";
+      } else {
+        print("Hata: ${response.statusCode} - ${response.body}");
+        return "Hata: Sunucudan geçerli bir yanıt alınamadı.";
+      }
+    } catch (e) {
+      print("API çağrısı sırasında hata: $e");
+      return "API çağrısı başarısız oldu.";
+    }
+  }
+
+  // Send user message and get bot response
+  void _sendMessage() async {
     if (_controller.text.isEmpty) return;
 
     setState(() {
+      String userMessage = _controller.text;
+
       _messages.add({
         'sender': 'user',
-        'message': _controller.text,
+        'message': userMessage,
       });
 
-      // Yapay zeka yanıtı (örnek yanıtlar)
+      _controller.clear();
+    });
+
+    // Get response from the FastAPI server
+    String botResponse = await _getBotResponse(_controller.text);
+
+    setState(() {
       _messages.add({
         'sender': 'bot',
-        'message': 'Bu bir test yanıtı: ${_controller.text}',
+        'message': botResponse,
       });
-
-      _controller.clear();  // Mesaj kutusunu temizle
     });
   }
 
@@ -39,7 +81,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       ),
       body: Column(
         children: [
-          // Mesajların görselleştirilmesi
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.all(8.0),
@@ -49,13 +90,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               },
             ),
           ),
-          
-          // Mesaj yazma alanı
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                // Mesaj yazma kutusu
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -72,8 +110,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                
-                // Gönder butonu
                 IconButton(
                   icon: Icon(Icons.send, color: Colors.blueAccent),
                   onPressed: _sendMessage,
@@ -86,10 +122,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     );
   }
 
-  // Mesajların nasıl görüneceğini belirleyelim
   Widget _buildMessage(Map<String, String> message) {
     bool isUserMessage = message['sender'] == 'user';
-    
+
     return Align(
       alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(

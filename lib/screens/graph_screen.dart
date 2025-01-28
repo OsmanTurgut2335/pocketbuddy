@@ -1,23 +1,57 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_menu.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class GraphScreen extends StatelessWidget {
+class CategoryExpenseGraphScreen extends StatefulWidget {
+  @override
+  _CategoryExpenseGraphScreenState createState() => _CategoryExpenseGraphScreenState();
+}
+
+class _CategoryExpenseGraphScreenState extends State<CategoryExpenseGraphScreen> {
+  Map<String, double> categoryExpenses = {};
+  String categoryInput = '';  // Kullanıcıdan alınan kategori
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  // Kullanıcının girdiği kategoriye ait harcama verisini çekme
+  Future<void> fetchCategoryExpenses(String category) async {
+    var url = Uri.parse('http://10.0.2.2:8000/category-expenses/$category');  // API endpoint
+    var response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      var data = json.decode(response.body);
+      setState(() {
+        // API'den dönen kategori harcama verisini alıyoruz
+        categoryExpenses = {category: data['category_expenses'].toDouble()};
+        print(categoryExpenses.entries);
+      });
+    } else {
+      setState(() {
+        categoryExpenses = {category: 0};  // Eğer hata varsa 0 döndür
+      });
+      throw Exception('API çağrısı başarısız oldu');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: Text('Kategori Bazında Harcama'),
         backgroundColor: Colors.blueAccent,
-        title: Text('Grafikler ve Görselleştirme'),
-        elevation: 4.0,
       ),
-      drawer: AppMenu(),  // Sol menü
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Başlık
             Text(
-              'Aylık Harcamalar Grafiği',
+              'Kategori Bazında Harcama Grafiği',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -26,70 +60,75 @@ class GraphScreen extends StatelessWidget {
             ),
             SizedBox(height: 20),
 
-            // Grafik Alanı (Şu an metin ile simüle ediliyor)
-            _buildChartContainer(),
+            // Kategori girişi için TextField
+            TextField(
+              onChanged: (value) {
+                setState(() {
+                  categoryInput = value;  // Kategori input değerini güncelle
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'Kategori Girin (örn. food, transport)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
 
-            SizedBox(height: 40),
+            // Harcama verisini çekmek için Button
+            ElevatedButton(
+              onPressed: () {
+                if (categoryInput.isNotEmpty) {
+                  fetchCategoryExpenses(categoryInput);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Lütfen geçerli bir kategori girin.')),
+                  );
+                }
+              },
+              child: Text('Harcama Verisini Getir'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+              ),
+            ),
+            SizedBox(height: 20),
 
-            // Aksiyon Butonları
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildActionButton('Gelir/Gider Ekle', Icons.add, context),
-                _buildActionButton('Dashboard', Icons.home, context),
-              ],
+            // Kategori harcama verisini bar grafiği olarak gösterme
+            Expanded(
+              child: BarChart(
+                BarChartData(
+                  alignment: BarChartAlignment.spaceAround,
+                  maxY: categoryExpenses.values.isNotEmpty
+                      ? categoryExpenses.values.reduce((a, b) => a > b ? a : b)
+                      : 0.0,
+                  minY: 0,
+                  barGroups: categoryExpenses.entries.map((entry) {
+                    return BarChartGroupData(
+                      x: categoryExpenses.keys.toList().indexOf(entry.key),
+                      barRods: [
+                        BarChartRodData(
+                          toY: entry.value,
+                          color: Colors.blue,
+                          width: 30,
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (double value, TitleMeta meta) {
+                          String title = categoryExpenses.keys.toList()[value.toInt()];
+                          return Text(title);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  // Grafik Alanı Kartı
-  Widget _buildChartContainer() {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        height: 300,
-        width: double.infinity,
-        color: Colors.grey[200],
-        child: Center(
-          child: Text(
-            'Grafik Burada Olacak',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.black54,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Aksiyon Butonları Yapıcı Fonksiyon
-  Widget _buildActionButton(String label, IconData icon, BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: () {
-        if (label == 'Gelir/Gider Ekle') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => GraphScreen()), // Bu ekrandan gelir gider ekranına yönlendirme yapılabilir
-          );
-        } else if (label == 'Dashboard') {
-          Navigator.pop(context); // Dashboard'a geri git
-        }
-      },
-      icon: Icon(icon),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 30),
-        iconColor: Colors.blueAccent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
         ),
       ),
     );

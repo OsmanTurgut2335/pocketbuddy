@@ -1,43 +1,104 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert'; // JSON verisini işlemek için
+
 import '../widgets/app_menu.dart';
 
-class SavingsGoalScreen extends StatelessWidget {
+class SavingsGoalScreen extends StatefulWidget {
+  final String savingGoal; // Tasarruf hedefi
+
+  // Constructor
+  SavingsGoalScreen({required this.savingGoal});
+
+  @override
+  _SavingsGoalScreenState createState() => _SavingsGoalScreenState();
+}
+
+class _SavingsGoalScreenState extends State<SavingsGoalScreen> {
+  final TextEditingController _goalController = TextEditingController();
+  late double savingsGoal; // Tasarruf hedefi
+  String? nextMonthExpense; // Gelecek ay tahmini harcama
+
+  @override
+  void initState() {
+    super.initState();
+    savingsGoal = double.tryParse(widget.savingGoal) ?? 0.0;
+    _goalController.text = savingsGoal.toString();
+    _fetchNextMonthExpense(); // API'den veriyi al
+  }
+
+  // API'den gelecek ay harcama tahminini almak için fonksiyon
+  Future<void> _fetchNextMonthExpense() async {
+    final response = await http.get(Uri.parse("http://10.0.2.2:8000/predict-next-month-expenses/"));
+
+    if (response.statusCode == 200) {
+      // JSON cevabını alıp parse et
+      final data = json.decode(response.body);
+      print("YARRRRRRRRRRRRRRRAK");
+      print(data);
+      setState(() {
+        nextMonthExpense = data['next_month_expenses'].toStringAsFixed(2);
+      });
+    } else {
+      // API'den cevap alamazsak
+      setState(() {
+        nextMonthExpense = "Hata oluştu";
+      });
+    }
+  }
+
+  // Tasarruf hedefini güncelleme fonksiyonu
+  void updateSavingGoal() {
+    setState(() {
+      savingsGoal = double.tryParse(_goalController.text) ?? 0.0;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: Text(
+          'Tasarruf Hedefi',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: Colors.blueAccent,
-        title: Text('Tasarruf Hedefi'),
-        elevation: 4.0,
+        elevation: 6.0,
+        centerTitle: true,
       ),
-      drawer: AppMenu(),  // Sol menü
-      body: Padding(
+      drawer: AppMenu(),
+      body: SingleChildScrollView(  // Scrollable alan ekledik
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Başlık
             Text(
               'Tasarruf Hedefi Takibi',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.blueAccent,
               ),
             ),
             SizedBox(height: 20),
-
-            // Tasarruf Hedefi Girişi
             _buildGoalInputField(),
-
             SizedBox(height: 40),
-
-            // Tasarruf Durumu
-            _buildSavingStatus(),
-
+            // Gelecek ay tahmini harcama
+            nextMonthExpense != null
+                ? Text(
+              'Gelecek Ay Tahmini Harcama: $nextMonthExpense ₺',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.blueAccent,
+              ),
+            )
+                : CircularProgressIndicator(), // API yanıtı gelene kadar loading göstergesi
             SizedBox(height: 40),
-
-            // Hedef Tamamlama Butonu
             _buildCompleteGoalButton(context),
           ],
         ),
@@ -45,90 +106,46 @@ class SavingsGoalScreen extends StatelessWidget {
     );
   }
 
-  // Tasarruf Hedefi Giriş Alanı
   Widget _buildGoalInputField() {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: TextFormField(
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Tasarruf Hedefinizin Miktarı (₺)',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.blueAccent),
-            ),
-          ),
+    return TextField(
+      controller: _goalController,
+      keyboardType: TextInputType.number,
+      onChanged: (text) {
+        updateSavingGoal();
+      },
+      decoration: InputDecoration(
+        labelText: 'Tasarruf Hedefi (₺)',
+        hintText: 'Örneğin: 1000 ₺',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blueAccent),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey, width: 1),
         ),
       ),
     );
   }
 
-  // Tasarruf Durumu Gösterimi
-  Widget _buildSavingStatus() {
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Mevcut Tasarruf Durumunuz:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueAccent,
-              ),
-            ),
-            SizedBox(height: 10),
-            // Mevcut tasarruf durumu
-            LinearProgressIndicator(
-              value: 0.4,  // Bu değeri dinamik hale getirebilirsiniz
-              backgroundColor: Colors.grey[300],
-              color: Colors.green,
-            ),
-            SizedBox(height: 10),
-            Text(
-              '₺400 / ₺1000',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueAccent,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Hedef Tamamlama Butonu
   Widget _buildCompleteGoalButton(BuildContext context) {
     return ElevatedButton(
       onPressed: () {
-        // Hedef tamamlama işlemi yapılacak
+        // Tasarruf hedefini tamamlamak için kaydet
+        Navigator.pop(context, _goalController.text);
       },
-      child: Text(
-        'Hedefi Tamamla',
-        style: TextStyle(fontSize: 18),
-      ),
+      child: Text('Hedefi Tamamla', style: TextStyle(fontSize: 16)),
       style: ElevatedButton.styleFrom(
         padding: EdgeInsets.symmetric(vertical: 16, horizontal: 30),
-        iconColor: Colors.green, // Hedef tamamlandığında yeşil renk
+        textStyle: TextStyle(fontSize: 18),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),
         ),
+        elevation: 8,
       ),
     );
   }
