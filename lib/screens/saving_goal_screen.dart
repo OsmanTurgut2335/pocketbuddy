@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert'; // JSON verisini işlemek için
+import 'dart:convert';
 
-import '../widgets/app_menu.dart';
+import '../core/widgets/app_menu.dart'; // JSON verisini işlemek için
+
+
 
 class SavingsGoalScreen extends StatefulWidget {
   final String savingGoal; // Tasarruf hedefi
@@ -34,7 +36,7 @@ class _SavingsGoalScreenState extends State<SavingsGoalScreen> {
     if (response.statusCode == 200) {
       // JSON cevabını alıp parse et
       final data = json.decode(response.body);
-      print("YARRRRRRRRRRRRRRRAK");
+
       print(data);
       setState(() {
         nextMonthExpense = data['next_month_expenses'].toStringAsFixed(2);

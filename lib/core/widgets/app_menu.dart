@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_body/screens/graph_screen.dart';
-import '../screens/income_expense_screen.dart';
 
-import '../screens/dashboard_screen.dart'; // DashboardScreen için gerekli import
+import '../../screens/dashboard_screen.dart';
+import '../../screens/income_expense_screen.dart';
+
 
 class AppMenu extends StatelessWidget {
 
@@ -10,20 +11,20 @@ class AppMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
-        color: Colors.blueAccent, // Menünün arka plan rengi
+        color: Colors.blueAccent,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             // Menünün başlığı (DrawerHeader)
             DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.blueAccent, // Başlık arka plan rengi
+                color: Colors.blueAccent,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    Icons.account_balance_wallet, // Uygulama simgesi
+                    Icons.account_balance_wallet,
                     color: Colors.white,
                     size: 40,
                   ),
@@ -49,7 +50,7 @@ class AppMenu extends StatelessWidget {
             ),
 
             // Menü öğeleri
-            _buildMenuTile(context, 'Ana Ekran', Icons.home, DashboardScreen()), // Ana Ekran menü öğesi
+            _buildMenuTile(context, 'Ana Ekran', Icons.home, DashboardScreen()),
             _buildMenuTile(context, 'Gelir/Gider Ekle', Icons.add, IncomeExpenseScreen()),
             _buildMenuTile(context, 'Grafikler ve Görselleştirme', Icons.bar_chart, CategoryExpenseGraphScreen()),
           //  _buildMenuTile(context, 'Tasarruf Hedefi', Icons.trending_up, SavingsGoalScreen()),
@@ -59,17 +60,17 @@ class AppMenu extends StatelessWidget {
     );
   }
 
-  // Menü öğesi için şık bir ListTile widget'ı
+
   Widget _buildMenuTile(BuildContext context, String title, IconData icon, Widget screen) {
     return ListTile(
       leading: Icon(
         icon,
-        color: Colors.white, // Icon'un rengi beyaz
+        color: Colors.white, //
       ),
       title: Text(
         title,
         style: TextStyle(
-          color: Colors.white, // Metin rengi beyaz
+          color: Colors.white,
           fontSize: 18,
           fontWeight: FontWeight.bold,
         ),

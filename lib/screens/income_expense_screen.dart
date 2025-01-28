@@ -4,8 +4,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../core/IncomeExpenseModel.dart';
-import '../core/SharedPrefsService.dart';
+import '../model/IncomeExpenseModel.dart';
+import '../service/SharedPrefsService.dart';
 
 class IncomeExpenseScreen extends StatefulWidget {
   @override

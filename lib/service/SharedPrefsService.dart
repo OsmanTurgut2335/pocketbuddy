@@ -1,6 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'IncomeExpenseModel.dart';
+import '../model/IncomeExpenseModel.dart';
 
 class SharedPrefsService {
   static const _incomeExpenseKey = 'income_expense_data';
